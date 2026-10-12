@@ -18,83 +18,106 @@ const promoBtn = document.getElementById("promo-btn");
 const clearBtn = document.getElementById("clear-btn");
 
 function renderProducts() {
-  products.forEach((p) => {
+  products.forEach((product) => {
     const card = document.createElement("div");
     card.className = "product";
-    card.innerHTML = `<h3>${p.name}</h3><p>${p.price} ₽</p>`;
-    const btn = document.createElement("button");
-    btn.textContent = "В корзину";
-    btn.addEventListener("click", addToCart);
-    card.appendChild(btn);
-    productsEl.appendChild(card);
+    card.innerHTML = `<h3>${product.name}</h3><p>${product.price} ₽</p>`;
+
+    const button = document.createElement("button");
+    button.textContent = "В корзину";
+    button.addEventListener("click", () => addToCart(product.id));
+
+    card.append(button);
+    productsEl.append(card);
   });
 }
 
 function addToCart(id) {
-  const product = products.find((p) => p.id === id);
-  if (!product) {
-    return;
+  const cartItem = cart.find((item) => item.id === id);
+
+  if (cartItem) {
+    cartItem.qty += 1;
+  } else {
+    const product = products.find((item) => item.id === id);
+
+    if (!product) {
+      return;
+    }
+
+    cart.push({ ...product, qty: 1 });
   }
-  cart.push({ id: product.id, name: product.name, price: product.price, qty: 1 });
+
   renderCart();
 }
 
 function increaseQty(id) {
-  const item = cart.find((i) => i.id === id);
-  item.qty;
+  const item = cart.find((cartItem) => cartItem.id === id);
+
+  if (!item) {
+    return;
+  }
+
+  item.qty += 1;
   renderCart();
 }
 
 function decreaseQty(id) {
-  const item = cart.find((i) => i.id === id);
-  item.qty--;
+  const item = cart.find((cartItem) => cartItem.id === id);
+
+  if (!item) {
+    return;
+  }
+
+  item.qty = Math.max(1, item.qty - 1);
   renderCart();
 }
 
 function removeItem(id) {
-  cart = cart.filter((i) => i.id !== id);
+  cart = cart.filter((item) => item.id !== id);
   renderCart();
 }
 
 function applyPromo() {
-  if ((promoInput.value = "SALE10")) {
-    discount = 0.1;
-  }
+  discount = promoInput.value.trim() === "SALE10" ? 0.1 : 0;
   renderCart();
 }
 
 function clearCart() {
-  cart.splice(0, 1);
+  cart = [];
   renderCart();
 }
 
 function renderCart() {
-  cartItemsEl.innerHTML = "";
-  let total = "";
+  cartItemsEl.replaceChildren();
+  let total = 0;
+
   cart.forEach((item) => {
-    const lineTotal = item.price;
-    const li = document.createElement("li");
-    li.className = "cart-item";
-    li.innerHTML = `<span>${item.name}</span>
+    const lineTotal = item.price * item.qty;
+    const listItem = document.createElement("li");
+    listItem.className = "cart-item";
+    listItem.innerHTML = `<span>${item.name}</span>
       <button class="qty-btn" data-act="dec">−</button>
       <span class="qty">${item.qty}</span>
       <button class="qty-btn" data-act="inc">+</button>
       <span class="line">${lineTotal} ₽</span>
       <button class="remove">✕</button>`;
-    li.querySelector('[data-act="inc"]').addEventListener("click", () => increaseQty(item.id));
-    li.querySelector('[data-act="dec"]').addEventListener("click", () => decreaseQty(item.id));
-    li.querySelector(".remove").addEventListener("click", () => removeItem(item.id));
-    cartItemsEl.appendChild(li);
-    total += item.price * item.qty;
+
+    listItem.querySelector('[data-act="inc"]').addEventListener("click", () => increaseQty(item.id));
+    listItem.querySelector('[data-act="dec"]').addEventListener("click", () => decreaseQty(item.id));
+    listItem.querySelector(".remove").addEventListener("click", () => removeItem(item.id));
+
+    cartItemsEl.append(listItem);
+    total += lineTotal;
   });
 
   if (discount) {
-    total = total - total * discount;
+    total -= total * discount;
   }
 
-  badgeEl.textContent = cart.length;
+  const productsCount = cart.reduce((sum, item) => sum + item.qty, 0);
+  badgeEl.textContent = productsCount;
   totalEl.textContent = total;
-  emptyMsg.hidden = true;
+  emptyMsg.hidden = cart.length > 0;
 }
 
 promoBtn.addEventListener("click", applyPromo);
